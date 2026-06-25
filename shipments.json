@@ -1,0 +1,14 @@
+{
+  "1000": {
+    "content": "laptop",
+    "weight": 3.2,
+    "destination_id": 11002,
+    "status": "pending"
+  },
+  "1001": {
+    "content": "ring",
+    "weight": 0.2,
+    "destination_id": 11004,
+    "status": "received"
+  }
+}

@@ -2,68 +2,70 @@ from fastapi import FastAPI, HTTPException, status
 from scalar_fastapi import get_scalar_api_reference
 from typing import Any
 from .schemas import Shipment, ShipmentCreate, ShipmentStatus, ShipmentStatusUpdate
+from .localPersistance import save, shipments
 
 app = FastAPI()
-shipments: dict[int, Shipment] = {
-    1204: Shipment(
-        content="laptop",
-        weight=12.5,
-        status=ShipmentStatus.delayed,
-        destination_id=11001,
-    ),
-    1205: Shipment(
-        content="phone", weight=0.5, status=ShipmentStatus.delayed, destination_id=11002
-    ),
-    1206: Shipment(
-        content="books", weight=5.2, status=ShipmentStatus.pending, destination_id=11003
-    ),
-    1207: Shipment(
-        content="furniture",
-        weight=25.0,
-        status=ShipmentStatus.in_transit,
-        destination_id=11004,
-    ),
-    1208: Shipment(
-        content="clothing",
-        weight=3.0,
-        status=ShipmentStatus.delayed,
-        destination_id=11005,
-    ),
-    1209: Shipment(
-        content="camera",
-        weight=1.4,
-        status=ShipmentStatus.delivered,
-        destination_id=11006,
-    ),
-    1210: Shipment(
-        content="monitor",
-        weight=7.1,
-        status=ShipmentStatus.in_transit,
-        destination_id=11007,
-    ),
-    1211: Shipment(
-        content="mouse", weight=0.2, status=ShipmentStatus.pending, destination_id=11008
-    ),
-    1212: Shipment(
-        content="keyboard",
-        weight=1.0,
-        status=ShipmentStatus.delivered,
-        destination_id=11009,
-    ),
-    1213: Shipment(
-        content="printer",
-        weight=9.3,
-        status=ShipmentStatus.in_transit,
-        destination_id=11010,
-    ),
-    1214: Shipment(
-        content="headphones",
-        weight=0.4,
-        status=ShipmentStatus.pending,
-        destination_id=11011,
-    ),
-}
+# shipments: dict[int, Shipment] = {
+#     1204: Shipment(
+#         content="laptop",
+#         weight=12.5,
+#         status=ShipmentStatus.delayed,
+#         destination_id=11001,
+#     ),
+#     1205: Shipment(
+#         content="phone", weight=0.5, status=ShipmentStatus.delayed, destination_id=11002
+#     ),
+#     1206: Shipment(
+#         content="books", weight=5.2, status=ShipmentStatus.pending, destination_id=11003
+#     ),
+#     1207: Shipment(
+#         content="furniture",
+#         weight=25.0,
+#         status=ShipmentStatus.in_transit,
+#         destination_id=11004,
+#     ),
+#     1208: Shipment(
+#         content="clothing",
+#         weight=3.0,
+#         status=ShipmentStatus.delayed,
+#         destination_id=11005,
+#     ),
+#     1209: Shipment(
+#         content="camera",
+#         weight=1.4,
+#         status=ShipmentStatus.delivered,
+#         destination_id=11006,
+#     ),
+#     1210: Shipment(
+#         content="monitor",
+#         weight=7.1,
+#         status=ShipmentStatus.in_transit,
+#         destination_id=11007,
+#     ),
+#     1211: Shipment(
+#         content="mouse", weight=0.2, status=ShipmentStatus.pending, destination_id=11008
+#     ),
+#     1212: Shipment(
+#         content="keyboard",
+#         weight=1.0,
+#         status=ShipmentStatus.delivered,
+#         destination_id=11009,
+#     ),
+#     1213: Shipment(
+#         content="printer",
+#         weight=9.3,
+#         status=ShipmentStatus.in_transit,
+#         destination_id=11010,
+#     ),
+#     1214: Shipment(
+#         content="headphones",
+#         weight=0.4,
+#         status=ShipmentStatus.pending,
+#         destination_id=11011,
+#     ),
+# }
 
+shipments = shipments
 
 ##this way is the recommended one to stablish a model as a response, using ->
 # only the IDE will know about the return. So better use both
@@ -119,11 +121,15 @@ def get_filtered_shipments(
 
 @app.post("/shipment")
 def post_shipments(data: ShipmentCreate) -> dict[str, int]:
-    id = max(shipments.keys()) + 1
+    if shipments:
+        id = max(shipments.keys()) + 1
+    else:
+        id = 1000
     ## use the incoming dict to construct a shipment object, the ** operator
     # extract the dict content as variables. 
     shipment = Shipment(**data.model_dump())
     shipments[id] = shipment
+    save()
     return {"id": id}
 
 
@@ -159,6 +165,7 @@ def put_shipment_data_from_body(shipment_id: int, body: ShipmentCreate):
     updated = shipment.model_copy(update=body.model_dump())
 
     shipments[shipment_id] = updated
+    save()
     return updated
 
 
@@ -174,6 +181,7 @@ def patch_shipment_status(
         )
 
     shipment.status = shipment_status.status
+    save()
     return shipment
 
 
