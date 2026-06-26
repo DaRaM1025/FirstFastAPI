@@ -3,67 +3,10 @@ from scalar_fastapi import get_scalar_api_reference
 from typing import Any
 from .schemas import Shipment, ShipmentCreate, ShipmentStatus, ShipmentStatusUpdate
 from .localPersistance import save, shipments
+from .databaseV1 import Database
 
 app = FastAPI()
-# shipments: dict[int, Shipment] = {
-#     1204: Shipment(
-#         content="laptop",
-#         weight=12.5,
-#         status=ShipmentStatus.delayed,
-#         destination_id=11001,
-#     ),
-#     1205: Shipment(
-#         content="phone", weight=0.5, status=ShipmentStatus.delayed, destination_id=11002
-#     ),
-#     1206: Shipment(
-#         content="books", weight=5.2, status=ShipmentStatus.pending, destination_id=11003
-#     ),
-#     1207: Shipment(
-#         content="furniture",
-#         weight=25.0,
-#         status=ShipmentStatus.in_transit,
-#         destination_id=11004,
-#     ),
-#     1208: Shipment(
-#         content="clothing",
-#         weight=3.0,
-#         status=ShipmentStatus.delayed,
-#         destination_id=11005,
-#     ),
-#     1209: Shipment(
-#         content="camera",
-#         weight=1.4,
-#         status=ShipmentStatus.delivered,
-#         destination_id=11006,
-#     ),
-#     1210: Shipment(
-#         content="monitor",
-#         weight=7.1,
-#         status=ShipmentStatus.in_transit,
-#         destination_id=11007,
-#     ),
-#     1211: Shipment(
-#         content="mouse", weight=0.2, status=ShipmentStatus.pending, destination_id=11008
-#     ),
-#     1212: Shipment(
-#         content="keyboard",
-#         weight=1.0,
-#         status=ShipmentStatus.delivered,
-#         destination_id=11009,
-#     ),
-#     1213: Shipment(
-#         content="printer",
-#         weight=9.3,
-#         status=ShipmentStatus.in_transit,
-#         destination_id=11010,
-#     ),
-#     1214: Shipment(
-#         content="headphones",
-#         weight=0.4,
-#         status=ShipmentStatus.pending,
-#         destination_id=11011,
-#     ),
-# }
+db = Database()
 
 shipments = shipments
 
@@ -73,22 +16,24 @@ shipments = shipments
 # Only IGNORE the response_model statement when the endpoint return a variable
 # unnecesary to validate.
 @app.get("/shipment/latest", response_model=Shipment)
-def get_latest_shipment() -> Shipment:
-    if not shipments:
+def get_latest_shipment():
+    shipment = db.get_latest()
+    if shipment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="No shipments found"
         )
-    latest_id = max(shipments.keys())
-    return shipments[latest_id]
+    
+    return shipment
 
 
 @app.get("/shipment/{shipment_id}", response_model=Shipment)
-def get_shipment(shipment_id: int) -> Shipment:
-    if shipment_id not in shipments:
+def get_shipment(shipment_id: int):
+    shipment = db.get_shipment_by_id(shipment_id)
+    if shipment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="No shipments found"
         )
-    return shipments[shipment_id]
+    return shipment
 
 
 @app.get("/shipments")
@@ -119,18 +64,10 @@ def get_filtered_shipments(
     return filtered_shipments
 
 
-@app.post("/shipment")
+@app.post("/shipment", response_model= None)
 def post_shipments(data: ShipmentCreate) -> dict[str, int]:
-    if shipments:
-        id = max(shipments.keys()) + 1
-    else:
-        id = 1000
-    ## use the incoming dict to construct a shipment object, the ** operator
-    # extract the dict content as variables. 
-    shipment = Shipment(**data.model_dump())
-    shipments[id] = shipment
-    save()
-    return {"id": id}
+    new_id = db.save(data)
+    return {"id": new_id}
 
 
 ##Updating all atributtes of shipment via query parameter
