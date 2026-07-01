@@ -23,7 +23,7 @@ async def lifespan_handler(app: FastAPI):
     ##Use rich package to pretty print in console
     print(panel.Panel("Stopped", border_style="red"))
 
-
+## main process calls lifespan_handler function at the start and end of server execution 
 app = FastAPI(lifespan=lifespan_handler)
 
 
@@ -49,6 +49,10 @@ def post_shipments(data: ShipmentCreate, session : SessionDep) -> dict[str, int]
                             estimated_delivery= datetime.now() + timedelta(days=3))
     session.add(new_shipment)
     session.commit()
+    ##refresh method make a new select statement to db and retrives the 
+    ## new data, in this case the variable new_shipment contains the id
+    ##if refresh were not used the endpoint is able to show it, because is a default 
+    ##valuea and is assigned in the db level. 
     session.refresh(new_shipment)
     return {"id": new_shipment.id}
 
