@@ -1,19 +1,13 @@
-from enum import Enum
+from datetime import datetime
 from random import randint
-
 from pydantic import BaseModel, Field
+from app.database.models import ShipmentStatus
+
 
 def random_destination():
     return randint(11000, 11999)
 
-##Field allows to create validation and auto update docs
-##BaseModel allows to define a base class working like a mirror for docs and validations, docs auto-recognize the request body
-class ShipmentStatus(str, Enum):
-    delayed = "delayed"
-    in_transit = "in transit" 
-    pending = "pending"
-    delivered = "delivered"    
-    received = "received"
+
 ##Used like base class to extend user face data, hide sensitive data to users
 class ShipmentBase(BaseModel):
     content: str = Field(
@@ -25,7 +19,7 @@ class ShipmentBase(BaseModel):
     # Field defaults: Use 'default' for static immutable values.
     # Use 'default_factory' (callable) for mutable types (list, dict) to avoid shared references across instances.
     # default_factory also runs per-instance, perfect for UUIDs/timestamps.
-    destination_id: int | None = Field(
+    destination: int | None = Field(
         default_factory=random_destination,
         description="the zipcode of the destination place",
     )
@@ -34,15 +28,10 @@ class ShipmentCreate(ShipmentBase):
     pass
 
 class ShipmentStatusUpdate(BaseModel):
-    status : ShipmentStatus = Field(
-    description=" defines the status of the shipment"
+    status : ShipmentStatus | None = Field(
+    description=" defines the status of the shipment", default= None
     )
+    estimated_delivery: datetime | None = Field(default=None)
 
-##Used to store data and retrive data using GET Methods
-class Shipment(ShipmentBase):
-    status : ShipmentStatus = Field(
-        description=" defines the status of the shipment", 
-        default= ShipmentStatus.received
-    )
-         
+     
 
